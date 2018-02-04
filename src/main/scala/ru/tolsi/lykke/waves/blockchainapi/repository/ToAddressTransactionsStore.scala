@@ -4,6 +4,8 @@ import scala.concurrent.Future
 
 trait ToAddressTransactionsStore {
   def addObservation(address: String): Future[Boolean]
+
   def removeObservation(address: String): Future[Boolean]
+
   def getAddressTransactions(address: String, take: Int, continuationId: Option[String]): Future[Boolean]
 }

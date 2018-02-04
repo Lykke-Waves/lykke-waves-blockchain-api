@@ -16,7 +16,7 @@ object Server extends HttpApp with LykkeApiServer with App {
 
   override def routes: Route = handleRejections {
     pathPrefix("api") {
-      isAliveRoute ~ capabilitiesRoute
+      Seq(isAliveRoute, capabilitiesRoute).reduce(_ ~ _)
     }
   }
 
