@@ -15,10 +15,21 @@ version in ThisBuild := {
 }
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-http" % "10.0.11",
-  "com.wavesplatform" % "wavesj" % "0.3",
-  "com.typesafe.akka" %% "akka-http-testkit" % "10.0.11" % Test
+  "ru.tolsi" %% "lykke-waves-common" % "master-07a64c14-SNAPSHOT"
 )
+
+sourceGenerators in Compile += Def.task {
+  val projectInfoFile = (sourceManaged in Compile).value / "ru" / "tolsi" / "lykke" / "waves" / "blockchainapi" / "Version.scala"
+  IO.write(projectInfoFile,
+    s"""package ru.tolsi.lykke.waves.blockchainapi
+       |
+       |object ProjectInfo {
+       |  val VersionString = "${version.value}"
+       |  val NameString = "${name.value}"
+       |}
+       |""".stripMargin)
+  Seq(projectInfoFile)
+}
 
 scalaVersion := "2.12.4"
 
