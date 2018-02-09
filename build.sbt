@@ -15,7 +15,7 @@ version in ThisBuild := {
 }
 
 libraryDependencies ++= Seq(
-  "ru.tolsi" %% "lykke-waves-common" % "master-07a64c14-SNAPSHOT",
+  "ru.tolsi" %% "lykke-waves-common" % "master-dbad561d-SNAPSHOT",
   "com.github.salat" %% "salat" % "1.11.2",
   "org.mongodb" %% "casbah" % "3.1.1",
   "com.github.fakemongo" % "fongo" % "2.1.0" % "test"
