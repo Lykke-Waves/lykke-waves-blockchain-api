@@ -14,7 +14,7 @@ import scala.util.Try
 
 case class Address(address: String)
 
-case class InvalidAddress(reason: String)
+case class InvalidAddress(reason: String) extends Exception
 
 object Address {
   private val BytesMaxValue = 256
@@ -59,11 +59,11 @@ object Address {
 
   def fromString(addressStr: String, scheme: Byte): Try[Address] = {
     val base58String = if (addressStr.startsWith(Prefix)) addressStr.drop(Prefix.length) else addressStr
-    (for {
-      _ <- Either.cond(base58String.length <= AddressStringLength, (), InvalidAddress(s"Wrong address string length: max=$AddressStringLength, actual: address.length"))
-      byteArray <- Base58.decode(base58String).toEither.left.map(ex => InvalidAddress(s"Unable to decode base58: ${ex.getMessage}"))
+    for {
+      _ <- Either.cond(base58String.length <= AddressStringLength, (), InvalidAddress(s"Wrong address string length: max=$AddressStringLength, actual: address.length")).toTry
+      byteArray <- Base58.decode(base58String).toEither.left.map(ex => InvalidAddress(s"Unable to decode base58: ${ex.getMessage}")).toTry
       address <- fromBytes(byteArray, scheme)
-    } yield address).toTry
+    } yield address
   }
 
   private def calcCheckSum(withoutChecksum: Array[Byte]): Array[Byte] = hash(withoutChecksum).take(ChecksumLength)
@@ -82,7 +82,7 @@ case class AddressesRoute(networkType: NetworkType) extends PlayJsonSupport with
     pathPrefix(Segment) { address =>
       pathSuffix("validity") {
         get {
-          complete(Address.fromString(address, scheme))
+          complete(Address.fromString(address, scheme.toByte))
         }
       }
     }
