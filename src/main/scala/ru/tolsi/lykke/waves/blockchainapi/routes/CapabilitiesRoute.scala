@@ -7,12 +7,12 @@ import play.api.libs.json.{JsValue, Json, Writes}
 
 object CapabilitiesRoute {
 
-  case class ResponseObject(isTransactionsRebuildingSupported: Boolean, areManyInputsSupported: Boolean, areManyOutputsSupported: Boolean)
+  private case class ResponseObject(isTransactionsRebuildingSupported: Boolean, areManyInputsSupported: Boolean, areManyOutputsSupported: Boolean)
 
-  val WavesCapabilities: JsValue = Json.toJson(ResponseObject(isTransactionsRebuildingSupported = false,
+  private implicit val ResponseWrites: Writes[ResponseObject] = Json.writes[ResponseObject]
+
+  private val WavesCapabilities: JsValue = Json.toJson(ResponseObject(isTransactionsRebuildingSupported = false,
     areManyInputsSupported = false, areManyOutputsSupported = false))
-
-  implicit val ResponseWrites: Writes[ResponseObject] = Json.writes[ResponseObject]
 }
 
 case class CapabilitiesRoute() extends PlayJsonSupport {

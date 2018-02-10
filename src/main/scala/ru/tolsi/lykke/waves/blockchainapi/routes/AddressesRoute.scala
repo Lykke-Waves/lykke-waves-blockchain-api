@@ -70,7 +70,7 @@ object Address {
 }
 
 object AddressesRoute {
-  implicit val addressWrites: Writes[Address] = Json.writes[Address]
+  private implicit val addressWrites: Writes[Address] = Json.writes[Address]
 }
 
 //  [GET] /api/addresses/{address}/validity

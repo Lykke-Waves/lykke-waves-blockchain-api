@@ -27,6 +27,6 @@ class MongoBroadcastOperationsStore(dbName: String) extends BroadcastOperationsS
         MongoDBObject("signedTransaction" -> MongoDBObject("$eq" -> operation.signedTransaction))))).isDefined)
 
   override def removeBroadcastOperation(id: String): Future[Boolean] = Future.successful {
-    MongoBroadcastOperationsDAO.remove(id).getN > 1
+    MongoBroadcastOperationsDAO.remove(MongoDBObject("operationId" -> id)).getN > 1
   }
 }
