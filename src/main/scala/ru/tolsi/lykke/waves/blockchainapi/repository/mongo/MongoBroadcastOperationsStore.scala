@@ -1,6 +1,6 @@
 package ru.tolsi.lykke.waves.blockchainapi.repository.mongo
 
-import com.mongodb.casbah.MongoConnection
+import com.mongodb.casbah.{MongoCollection, MongoConnection}
 import com.mongodb.casbah.commons.{MongoDBList, MongoDBObject}
 import ru.tolsi.lykke.waves.blockchainapi.repository.{BroadcastOperation, BroadcastOperationsStore}
 import salat.dao.SalatDAO
@@ -8,9 +8,9 @@ import salat.global._
 
 import scala.concurrent.Future
 
-class MongoBroadcastOperationsStore(dbName: String) extends BroadcastOperationsStore {
+class MongoBroadcastOperationsStore(collection: MongoCollection) extends BroadcastOperationsStore {
 
-  private object MongoBroadcastOperationsDAO extends SalatDAO[BroadcastOperation, String](collection = MongoConnection()(dbName)("broadcast_operations"))
+  private object MongoBroadcastOperationsDAO extends SalatDAO[BroadcastOperation, String](collection)
 
   override def addBroadcastOperation(operation: BroadcastOperation): Future[Boolean] = Future.successful(
     // todo is it works?

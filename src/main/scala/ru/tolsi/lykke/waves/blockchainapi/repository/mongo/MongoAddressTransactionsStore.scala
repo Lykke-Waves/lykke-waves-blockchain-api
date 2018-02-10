@@ -1,6 +1,6 @@
 package ru.tolsi.lykke.waves.blockchainapi.repository.mongo
 
-import com.mongodb.casbah.MongoConnection
+import com.mongodb.casbah.MongoCollection
 import com.mongodb.casbah.commons.MongoDBObject
 import ru.tolsi.lykke.waves.blockchainapi.repository.AddressTransactionsStore
 import ru.tolsi.lykke.waves.blockchainapi.repository.AddressTransactionsStore.Transaction
@@ -9,12 +9,12 @@ import salat.global._
 
 import scala.concurrent.Future
 
-abstract class MongoAddressTransactionsStore(dbName: String, collectionName: String) extends AddressTransactionsStore {
+abstract class MongoAddressTransactionsStore(collection: MongoCollection, observationsCollection: MongoCollection) extends AddressTransactionsStore {
   self: AddressTransactionsStore =>
 
-  private object MongoAddressTransactionsDAO extends SalatDAO[Transaction, String](collection = MongoConnection()(dbName)(collectionName))
+  private object MongoAddressTransactionsDAO extends SalatDAO[Transaction, String](collection)
 
-  private object MongoAddressTransactionsObservationsDAO extends SalatDAO[String, String](collection = MongoConnection()(dbName)(s"${collectionName}_observations"))
+  private object MongoAddressTransactionsObservationsDAO extends SalatDAO[String, String](observationsCollection)
 
   override def addObservation(address: String): Future[Boolean] = Future.successful(
     // todo is it works?
