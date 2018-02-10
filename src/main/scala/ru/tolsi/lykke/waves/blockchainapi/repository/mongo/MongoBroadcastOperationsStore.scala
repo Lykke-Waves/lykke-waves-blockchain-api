@@ -5,6 +5,8 @@ import com.mongodb.casbah.commons.{MongoDBList, MongoDBObject}
 import ru.tolsi.lykke.waves.blockchainapi.repository.{BroadcastOperation, BroadcastOperationsStore}
 import salat.dao.SalatDAO
 import salat.global._
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 import scala.concurrent.Future
 
@@ -12,21 +14,20 @@ class MongoBroadcastOperationsStore(collection: MongoCollection) extends Broadca
 
   private object MongoBroadcastOperationsDAO extends SalatDAO[BroadcastOperation, String](collection)
 
-  override def addBroadcastOperation(operation: BroadcastOperation): Future[Boolean] = Future.successful(
-    // todo is it works?
-    MongoBroadcastOperationsDAO.findOneById(operation.operationId).map(_ => false).getOrElse {
-      MongoBroadcastOperationsDAO.insert(operation)
-      true
-    })
+  override def addBroadcastOperation(operation: BroadcastOperation): Future[Boolean] = {
+    isOperationExists(operation).map {
+      case true => false
+      case false => MongoBroadcastOperationsDAO.insert(operation)
+        true
+    }
+  }
 
-  // todo is it needed?
-  override def isOperationExists(operation: BroadcastOperation): Future[Boolean] = Future.successful(
-    // todo is it works?
+  private def isOperationExists(operation: BroadcastOperation): Future[Boolean] = Future.successful(
     MongoBroadcastOperationsDAO.findOne(MongoDBObject("$or" ->
       MongoDBList(MongoDBObject("operationId" -> MongoDBObject("$eq" -> operation.operationId)),
         MongoDBObject("signedTransaction" -> MongoDBObject("$eq" -> operation.signedTransaction))))).isDefined)
 
   override def removeBroadcastOperation(id: String): Future[Boolean] = Future.successful {
-    MongoBroadcastOperationsDAO.remove(MongoDBObject("operationId" -> id)).getN > 0
+    MongoBroadcastOperationsDAO.removeById(id).getN > 0
   }
 }
