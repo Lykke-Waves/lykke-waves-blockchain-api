@@ -2,14 +2,13 @@ package ru.tolsi.lykke.waves.blockchainapi.repository.mongo
 
 import com.mongodb.casbah.MongoCollection
 import com.mongodb.casbah.commons.MongoDBObject
-import ru.tolsi.lykke.waves.blockchainapi.repository.AddressTransactionsStore.Transaction
-import ru.tolsi.lykke.waves.blockchainapi.repository.{AddressTransactionsStore, Observation}
+import ru.tolsi.lykke.waves.blockchainapi.repository.{AddressTransactionsStore, Observation, Transaction}
 import salat.dao.SalatDAO
 import salat.global._
 
 import scala.concurrent.Future
 
-abstract class MongoAddressTransactionsStore(collection: MongoCollection, observationsCollection: MongoCollection) extends AddressTransactionsStore {
+abstract class MongoAddressTransactionsStore(collection: MongoCollection, observationsCollection: MongoCollection, val field: String) extends AddressTransactionsStore {
   self: AddressTransactionsStore =>
 
   private object MongoAddressTransactionsDAO extends SalatDAO[Transaction, String](collection)
@@ -17,29 +16,25 @@ abstract class MongoAddressTransactionsStore(collection: MongoCollection, observ
   private object MongoAddressTransactionsObservationsDAO extends SalatDAO[Observation, String](observationsCollection)
 
   override def addObservation(address: String): Future[Boolean] = Future.successful(
-    // todo is it works?
     MongoAddressTransactionsObservationsDAO.findOneById(address).map(_ => false).getOrElse {
       MongoAddressTransactionsObservationsDAO.insert(Observation(address))
       true
     })
 
   override def removeObservation(address: String): Future[Boolean] = Future.successful {
-    MongoAddressTransactionsObservationsDAO.removeById(address).getN > 0
+    val r1 = MongoAddressTransactionsObservationsDAO.removeById(address)
+    val r2 = MongoAddressTransactionsDAO.remove(MongoDBObject(field -> address))
+    r1.getN > 0 && r2.wasAcknowledged()
   }
 
-  override def getAddressTransactions(address: String, take: Int, continuationId: Option[String]): Future[Seq[Transaction]] = Future.successful {
-    val cur = continuationId match {
+  override def getAddressTransactions(address: String, take: Int, continuationId: Option[String] = None): Future[Seq[Transaction]] = Future.successful {
+    val cur = (continuationId match {
       case Some(continuationId) =>
-        val Array(address, timestamp) = continuationId.split(":")
-        // todo may be take by one address until "take" value?
-        MongoAddressTransactionsDAO.find(ref = MongoDBObject("address" -> MongoDBObject("$eq" -> address), "timestamp" -> MongoDBObject("$gt" -> timestamp)))
-          .sort(orderBy = MongoDBObject("timestamp" -> -1)) // sort by _id desc
-          .limit(take)
+        MongoAddressTransactionsDAO.find(ref = MongoDBObject(field -> address, "_id" -> MongoDBObject("$gt" -> continuationId)))
       case None =>
-        MongoAddressTransactionsDAO.find(MongoDBObject("$eq" -> address))
-          .sort(orderBy = MongoDBObject("timestamp" -> -1)) // sort by _id desc
-          .limit(take)
-    }
+        MongoAddressTransactionsDAO.find(MongoDBObject(field -> address))
+    }).sort(orderBy = MongoDBObject("_id" -> 1))
+      .limit(take)
     try {
       cur.toList
     } finally {
@@ -48,8 +43,7 @@ abstract class MongoAddressTransactionsStore(collection: MongoCollection, observ
   }
 
   override def addTransaction(transaction: Transaction): Future[Boolean] = Future.successful(
-    // todo is it works?
-    MongoAddressTransactionsDAO.findOneById(transaction.hash).map(_ => false).getOrElse {
+    MongoAddressTransactionsDAO.findOne(MongoDBObject("hash" -> transaction.hash)).map(_ => false).getOrElse {
       MongoAddressTransactionsDAO.insert(transaction)
       true
     })

@@ -15,7 +15,6 @@ class MongoBalancesStore(collection: MongoCollection, observationsCollection: Mo
   private object MongoBalancesObservationsDAO extends SalatDAO[Observation, String](observationsCollection)
 
   override def addObservation(address: String): Future[Boolean] = Future.successful(
-    // todo is it works?
     MongoBalancesObservationsDAO.findOneById(address).map(_ => false).getOrElse {
       MongoBalancesObservationsDAO.insert(Observation(address))
       true
@@ -23,20 +22,18 @@ class MongoBalancesStore(collection: MongoCollection, observationsCollection: Mo
 
   override def removeObservation(address: String): Future[Boolean] = Future.successful {
     val result1 = MongoBalancesObservationsDAO.removeById(address)
-    // todo remove saved balances here?
     val result2 = MongoBalancesDAO.remove(MongoDBObject("address" -> address))
-    result1.wasAcknowledged() && result1.getN > 0 &&
+    result1.getN > 0 &&
       result2.wasAcknowledged()
   }
 
   override def getBalances(take: Int, continuationId: Option[String] = None): Future[Seq[Balance]] = Future.successful {
     val cur = (continuationId match {
       case Some(continuationId) =>
-        // todo may be take by one address until "take" value?
         MongoBalancesDAO.find(ref = MongoDBObject("_id" -> MongoDBObject("$gt" -> continuationId)))
       case None =>
         MongoBalancesDAO.find(MongoDBObject.empty)
-    }).sort(orderBy = MongoDBObject("_id" -> 1)) // sort by _id desc
+    }).sort(orderBy = MongoDBObject("_id" -> 1))
       .limit(take)
     try {
       cur.toList

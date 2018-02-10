@@ -4,7 +4,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json._
-import ru.tolsi.lykke.waves.blockchainapi.repository.{AddressTransactionsStore, FromAddressTransactionsStore, ToAddressTransactionsStore}
+import ru.tolsi.lykke.waves.blockchainapi.repository.{AddressTransactionsStore, FromAddressTransactionsStore, ToAddressTransactionsStore, Transaction}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -15,7 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 //  [GET] /api/transactions/history/from/{address}?take=integer&[afterHash=string]
 //  [GET] /api/transactions/history/to/{address}?take=integer&[afterHash=string]
 object TransactionsHistoryRoute {
-  private implicit val BalaceWrites: Writes[AddressTransactionsStore.Transaction] = Json.writes[AddressTransactionsStore.Transaction]
+  private implicit val BalaceWrites: Writes[Transaction] = Json.writes[Transaction]
 }
 
 case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toStore: ToAddressTransactionsStore) extends PlayJsonSupport {
@@ -23,7 +23,6 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
   import TransactionsHistoryRoute._
   val route: Route = path("transactions" / "history") {
     path("from") {
-      // todo move out duplicated routes code
       path(Segment / "observation") { address =>
         post {
           complete(fromStore.addObservation(address).map(JsBoolean))

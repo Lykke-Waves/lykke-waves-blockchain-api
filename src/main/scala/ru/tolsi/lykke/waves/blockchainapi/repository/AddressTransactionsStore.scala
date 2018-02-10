@@ -1,21 +1,35 @@
 package ru.tolsi.lykke.waves.blockchainapi.repository
 
-import ru.tolsi.lykke.waves.blockchainapi.repository.AddressTransactionsStore.Transaction
 import salat.annotations.Key
 
 import scala.concurrent.Future
 
-object AddressTransactionsStore {
-
-  case class Transaction(operationId: Option[String],
-                         timestamp: Long,
-                         fromAddress: String,
-                         toAddress: String,
-                         assetId: Option[String],
-                         amount: Long,
-                         @Key("hash") hash: String)
-
+object Transaction {
+  def apply(operationId: Option[String],
+            timestamp: Long,
+            fromAddress: String,
+            toAddress: String,
+            assetId: Option[String],
+            amount: Long,
+            hash: String,
+            field: String
+           ) = new Transaction(
+    (field match {
+      case "toAddress" => toAddress
+      case "fromAddress" => fromAddress
+    }) + "-" + timestamp,
+    operationId, timestamp, fromAddress, toAddress, assetId, amount, hash
+  )
 }
+
+case class Transaction(@Key("_id") addressAndTimestamp: String,
+                       operationId: Option[String],
+                       timestamp: Long,
+                       fromAddress: String,
+                       toAddress: String,
+                       assetId: Option[String],
+                       amount: Long,
+                       hash: String)
 
 trait AddressTransactionsStore {
   def addObservation(address: String): Future[Boolean]
