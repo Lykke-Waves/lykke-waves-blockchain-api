@@ -9,5 +9,7 @@ case class BroadcastOperation(@Key("operationId") operationId: String, signedTra
 trait BroadcastOperationsStore {
   def addBroadcastOperation(operation: BroadcastOperation): Future[Boolean]
 
+  def removeBroadcastOperation(id: String): Future[Boolean]
+
   def isOperationExists(operation: BroadcastOperation): Future[Boolean]
 }
