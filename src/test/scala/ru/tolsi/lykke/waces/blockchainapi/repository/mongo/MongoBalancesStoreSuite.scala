@@ -37,6 +37,26 @@ class MongoBalancesStoreSuite extends AsyncFunSuite with Matchers with BeforeAnd
       store.removeObservation("abc").map(_ shouldBe true))
   }
 
+  test("MongoBalancesStore.removeObservation should remove all the balances") {
+    val db = fongo.getDB(dbName)
+    val store = new MongoBalancesStore(new MongoCollection(db.getCollection("assets")), new MongoCollection(db.getCollection("assets_observations")))
+
+    val updates = for {i <- 0 to 20} yield ("account", "asset" + i, 1L)
+
+    val updatesF = Future.sequence(updates.zipWithIndex.map { case ((acc, asset, change), i) => store.updateBalance(acc, asset, change, i) })
+
+    store.addObservation("account").flatMap(o => {
+      o shouldBe true
+      updatesF.flatMap(statuses => {
+        statuses.forall(identity) shouldBe true
+        store.removeObservation("account").flatMap(o => {
+          o shouldBe true
+          store.getBalances(10).map(_ shouldBe 'empty)
+        })
+      })
+    })
+  }
+
   test("MongoBalancesStore.removeObservation should return false if not exists") {
     val db = fongo.getDB(dbName)
     val store = new MongoBalancesStore(new MongoCollection(db.getCollection("assets")), new MongoCollection(db.getCollection("assets_observations")))

@@ -24,7 +24,7 @@ class MongoBalancesStore(collection: MongoCollection, observationsCollection: Mo
   override def removeObservation(address: String): Future[Boolean] = Future.successful {
     val result1 = MongoBalancesObservationsDAO.removeById(address)
     // todo remove saved balances here?
-    val result2 = MongoBalancesDAO.removeById(address)
+    val result2 = MongoBalancesDAO.remove(MongoDBObject("address" -> address))
     result1.wasAcknowledged() && result1.getN > 0 &&
       result2.wasAcknowledged()
   }
