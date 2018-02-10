@@ -4,7 +4,12 @@ import salat.annotations.Key
 
 import scala.concurrent.Future
 
-case class Balance(@Key("address") address: String, assetId: String, balance: Long, block: Long)
+object Balance {
+  def apply(address: String, assetId: String, balance: Long, block: Long): Balance = new Balance(address + "-" + assetId,
+    address, assetId, balance, block)
+}
+
+case class Balance(@Key("_id") addressAndAsset: String, address: String, assetId: String, balance: Long, block: Long)
 
 trait BalancesStore {
   def addObservation(address: String): Future[Boolean]
@@ -13,5 +18,5 @@ trait BalancesStore {
 
   def getBalances(take: Int, continuationId: Option[String]): Future[Seq[Balance]]
 
-  def updateBalance(address: String, assetId: String, change: Long): Future[Balance]
+  def updateBalance(address: String, assetId: String, change: Long, block: Long): Future[Boolean]
 }

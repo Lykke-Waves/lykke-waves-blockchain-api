@@ -2,8 +2,8 @@ package ru.tolsi.lykke.waves.blockchainapi.repository.mongo
 
 import com.mongodb.casbah.MongoCollection
 import com.mongodb.casbah.commons.MongoDBObject
-import ru.tolsi.lykke.waves.blockchainapi.repository.AddressTransactionsStore
 import ru.tolsi.lykke.waves.blockchainapi.repository.AddressTransactionsStore.Transaction
+import ru.tolsi.lykke.waves.blockchainapi.repository.{AddressTransactionsStore, Observation}
 import salat.dao.SalatDAO
 import salat.global._
 
@@ -14,17 +14,17 @@ abstract class MongoAddressTransactionsStore(collection: MongoCollection, observ
 
   private object MongoAddressTransactionsDAO extends SalatDAO[Transaction, String](collection)
 
-  private object MongoAddressTransactionsObservationsDAO extends SalatDAO[String, String](observationsCollection)
+  private object MongoAddressTransactionsObservationsDAO extends SalatDAO[Observation, String](observationsCollection)
 
   override def addObservation(address: String): Future[Boolean] = Future.successful(
     // todo is it works?
     MongoAddressTransactionsObservationsDAO.findOneById(address).map(_ => false).getOrElse {
-      MongoAddressTransactionsObservationsDAO.insert(address)
+      MongoAddressTransactionsObservationsDAO.insert(Observation(address))
       true
     })
 
   override def removeObservation(address: String): Future[Boolean] = Future.successful {
-    MongoAddressTransactionsObservationsDAO.remove(address).getN > 1
+    MongoAddressTransactionsObservationsDAO.removeById(address).getN > 0
   }
 
   override def getAddressTransactions(address: String, take: Int, continuationId: Option[String]): Future[Seq[Transaction]] = Future.successful {
