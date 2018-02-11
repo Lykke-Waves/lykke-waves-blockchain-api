@@ -23,7 +23,7 @@ object TransactionsRoute {
 case class TransactionsRoute(store: BroadcastOperationsStore) extends PlayJsonSupport {
 
   import TransactionsRoute._
-  val route: Route = path("transactions" / "broadcast") {
+  val route: Route = pathPrefix("transactions" / "broadcast") {
     pathEnd {
       post {
         entity(as[BroadcastOperation]) { broadcastOperation =>

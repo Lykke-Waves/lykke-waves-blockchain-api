@@ -36,7 +36,7 @@ class Server(db: MongoDB) extends HttpApp with LykkeApiServer {
       new MongoCollection(db.getCollection("to_address_transactions_observations")))
   ).route
 
-  override def routes: Route = handleRejections {
+  override val routes: Route = handleRejections {
     pathPrefix("api") {
       Seq(isAliveRoute, capabilitiesRoute, addressesRoute, assetsRoute, balancesRoute, transactionsRoute, transactionsHistoryRoute).reduce(_ ~ _)
     }

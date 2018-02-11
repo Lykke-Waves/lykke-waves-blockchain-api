@@ -19,7 +19,7 @@ case class BalancesRoute(store: BalancesStore) extends PlayJsonSupport {
 
   import BalancesRoute._
 
-  val route: Route = path("balances") {
+  val route: Route = pathPrefix("balances") {
     pathEnd {
       get {
         parameters('take.as[Int], 'continuation.as[Option[String]]) { case (take, continuation) =>

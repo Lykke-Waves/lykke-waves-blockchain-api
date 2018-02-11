@@ -16,7 +16,7 @@ object AssetsRoute {
 case class AssetsRoute(store: AssetsStore) extends PlayJsonSupport {
 
   import AssetsRoute._
-  val route: Route = path("assets") {
+  val route: Route = pathPrefix("assets") {
     pathEnd {
       get {
         parameters('take.as[Int], 'continuation.as[Option[String]]) { case (take, continuation) =>

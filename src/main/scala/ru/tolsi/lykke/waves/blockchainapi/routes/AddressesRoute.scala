@@ -78,9 +78,9 @@ case class AddressesRoute(networkType: NetworkType) extends PlayJsonSupport with
 
   import AddressesRoute._
 
-  val route: Route = path("addresses") {
+  val route: Route = pathPrefix("addresses") {
     pathPrefix(Segment) { address =>
-      pathSuffix("validity") {
+      path("validity") {
         get {
           complete(Address.fromString(address, scheme.toByte))
         }

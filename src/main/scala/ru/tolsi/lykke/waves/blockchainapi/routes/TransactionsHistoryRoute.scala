@@ -21,8 +21,8 @@ object TransactionsHistoryRoute {
 case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toStore: ToAddressTransactionsStore) extends PlayJsonSupport {
 
   import TransactionsHistoryRoute._
-  val route: Route = path("transactions" / "history") {
-    path("from") {
+  val route: Route = pathPrefix("transactions" / "history") {
+    pathPrefix("from") {
       path(Segment / "observation") { address =>
         post {
           complete(fromStore.addObservation(address).map(JsBoolean))
@@ -36,7 +36,7 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
           }
         }
       }
-    } ~ path("to") {
+    } ~ pathPrefix("to") {
       path(Segment / "observation") { address =>
         post {
           complete(toStore.addObservation(address).map(JsBoolean))
