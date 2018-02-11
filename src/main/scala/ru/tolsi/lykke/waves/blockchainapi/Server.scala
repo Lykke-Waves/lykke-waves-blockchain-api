@@ -4,8 +4,8 @@ import akka.http.scaladsl.server.{HttpApp, Route}
 import com.mongodb.casbah.{MongoClient, MongoCollection, MongoDB}
 import ru.tolsi.lykke.common.http.LykkeApiServer
 import ru.tolsi.lykke.common.http.routes.IsAliveRoute
+import ru.tolsi.lykke.common.repository.mongo._
 import ru.tolsi.lykke.common.{NetworkType, Util}
-import ru.tolsi.lykke.waves.blockchainapi.repository.mongo._
 import ru.tolsi.lykke.waves.blockchainapi.routes._
 
 object Server extends App {

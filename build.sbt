@@ -15,11 +15,7 @@ version in ThisBuild := {
 }
 
 libraryDependencies ++= Seq(
-  "ru.tolsi" %% "lykke-waves-common" % "master-dbad561d-SNAPSHOT" % "compile->compile;test->test",
-  "com.github.salat" %% "salat" % "1.11.2",
-  "org.mongodb" %% "casbah" % "3.1.1",
-  "com.github.fakemongo" % "fongo" % "2.1.0" % "test",
-  "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+  "ru.tolsi" %% "lykke-waves-common" % "master-6c632cfb-SNAPSHOT" % "compile->compile;test->test"
 )
 
 sourceGenerators in Compile += Def.task {

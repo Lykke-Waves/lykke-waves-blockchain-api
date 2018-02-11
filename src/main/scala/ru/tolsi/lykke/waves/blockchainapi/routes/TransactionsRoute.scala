@@ -4,7 +4,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json.{JsBoolean, Json, Reads}
-import ru.tolsi.lykke.waves.blockchainapi.repository.{BroadcastOperation, BroadcastOperationsStore}
+import ru.tolsi.lykke.common.repository.{BroadcastOperation, BroadcastOperationsStore}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

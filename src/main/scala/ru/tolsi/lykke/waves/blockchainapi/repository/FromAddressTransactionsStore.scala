@@ -1,3 +1,0 @@
-package ru.tolsi.lykke.waves.blockchainapi.repository
-
-trait FromAddressTransactionsStore extends AddressTransactionsStore

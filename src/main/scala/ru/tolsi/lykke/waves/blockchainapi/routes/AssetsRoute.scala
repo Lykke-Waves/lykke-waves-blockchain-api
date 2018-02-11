@@ -4,7 +4,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json._
-import ru.tolsi.lykke.waves.blockchainapi.repository.{Asset, AssetsStore}
+import ru.tolsi.lykke.common.repository.{Asset, AssetsStore}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
