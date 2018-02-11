@@ -24,6 +24,8 @@ Also it requires MongoDB installed at `mongodb://127.0.0.1:27017` and uses db `l
 
 # Todos
 
+Due to the rather tight deadlines of the contest and lack of free time, the project will be completed a little later.
+
 - [ ] Make the required logging format
 - [ ] Make the database errors resilience
 - [ ] Make not implemented methods
