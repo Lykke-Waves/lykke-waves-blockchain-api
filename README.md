@@ -21,3 +21,11 @@ Just install the .deb package and start the service.
 
 For this moment there are no any configuration allowed, it will be as HTTP service at `localhost:8080`. 
 Also it requires MongoDB installed at `mongodb://127.0.0.1:27017` and uses db `lykke-waves`.
+
+# Todos
+
+- [ ] Make the required logging format
+- [ ] Make the database errors resilience
+- [ ] Make not implemented methods
+- [ ] Make the routes tests
+- [ ] Clean up the code
