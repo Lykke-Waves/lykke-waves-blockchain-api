@@ -31,7 +31,7 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
         }
       } ~ path(Segment) { address =>
         get {
-          parameters('take.as[Int], 'continuation.as[Option[String]]) { case (take, continuation) =>
+          parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
             complete(fromStore.getAddressTransactions(address, take, continuation).map(Json.toJson(_)))
           }
         }
@@ -45,7 +45,7 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
         }
       } ~ path(Segment) { address =>
         get {
-          parameters('take.as[Int], 'continuation.as[Option[String]]) { case (take, continuation) =>
+          parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
             complete(toStore.getAddressTransactions(address, take, continuation).map(Json.toJson(_)))
           }
         }
