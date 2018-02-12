@@ -17,7 +17,7 @@ object Server extends App {
   private val dbName = if (settings.NetworkType == NetworkType.Main) "lykke-waves" else "lykke-waves-testnet"
   private val db = mongoClient.getDB(dbName)
 
-  new Server(db).startServer("localhost", 8080)
+  new Server(db).startServer(settings.ServiceHost, settings.ServicePort)
 }
 
 class Server(db: MongoDB) extends HttpApp with LykkeApiServer {

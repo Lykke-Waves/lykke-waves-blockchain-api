@@ -10,7 +10,7 @@ import ru.tolsi.lykke.common.NetworkType
 import scala.util.Try
 
 object BlockchainAPISettings extends StrictLogging {
-  val Default = BlockchainAPISettings(NetworkType.Main, ServerAddress.defaultHost(), ServerAddress.defaultPort())
+  val Default = BlockchainAPISettings(NetworkType.Main, ServerAddress.defaultHost(), ServerAddress.defaultPort(), "localhost", 8080)
 
   implicit val BlockchainAPISettingsReader: Reads[BlockchainAPISettings] = Json.reads[BlockchainAPISettings]
 
@@ -25,4 +25,4 @@ object BlockchainAPISettings extends StrictLogging {
   }
 }
 
-case class BlockchainAPISettings(NetworkType: NetworkType, MongoDBHost: String, MongoDBPort: Int)
+case class BlockchainAPISettings(NetworkType: NetworkType, MongoDBHost: String, MongoDBPort: Int, ServiceHost: String, ServicePort: Int)
