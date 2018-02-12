@@ -30,9 +30,10 @@ case class TransactionsRoute(store: BroadcastOperationsStore) extends PlayJsonSu
     }
   }
 
-  private def notImpletementRoute1(routePath: PathMatcher1[String], method: => Directive0) = path(routePath) { _ => method {
-    complete(StatusCodes.NotImplemented)
-  }
+  private def notImpletementRoute1(routePath: PathMatcher1[String], method: => Directive0) = path(routePath) { _ =>
+    method {
+      complete(StatusCodes.NotImplemented)
+    }
   }
 
   val route: Route = pathPrefix("transactions") {
