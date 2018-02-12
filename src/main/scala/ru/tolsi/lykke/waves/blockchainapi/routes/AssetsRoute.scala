@@ -7,8 +7,6 @@ import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json._
 import ru.tolsi.lykke.common.repository.{Asset, AssetsStore}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 //  [GET] /api/assets?take=integer&[continuation=string]
 //  [GET] /api/assets/{assetId}
 object AssetsRoute {
@@ -23,7 +21,19 @@ case class AssetsRoute(store: AssetsStore) extends PlayJsonSupport {
     pathEnd {
       get {
         parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
-          complete(store.getAssets(take, continuation).map(Json.toJson(_)))
+          onSuccess(store.getAssets(take + 1, continuation)) { assetsAndOneMore =>
+            complete {
+              val continuationAndAssets = if (assetsAndOneMore.lengthCompare(take + 1) == 0) {
+                // we ask the one more subsequent element only to determine if it exists
+                val toReturn = assetsAndOneMore.init
+                (toReturn.last.assetId, toReturn)
+              } else {
+                // there are no subsequent elements
+                ("", assetsAndOneMore)
+              }
+              Json.toJson(TakeResponseObject(continuationAndAssets._1, Json.toJson(continuationAndAssets._2).as[JsArray]))
+            }
+          }
         }
       }
     } ~ path(Segment) { assetId =>

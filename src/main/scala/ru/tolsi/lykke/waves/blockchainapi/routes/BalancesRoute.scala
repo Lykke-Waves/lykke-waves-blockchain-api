@@ -24,7 +24,19 @@ case class BalancesRoute(store: BalancesStore) extends PlayJsonSupport {
     pathEnd {
       get {
         parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
-          complete(store.getBalances(take, continuation).map(Json.toJson(_)))
+          onSuccess(store.getBalances(take + 1, continuation)) { balancesAndOneMore =>
+            complete {
+              val continuationAndBalances = if (balancesAndOneMore.lengthCompare(take + 1) == 0) {
+                // we ask the one more subsequent element only to determine if it exists
+                val toReturn = balancesAndOneMore.init
+                (toReturn.last.addressAndAsset, toReturn)
+              } else {
+                // there are no subsequent elements
+                ("", balancesAndOneMore)
+              }
+              Json.toJson(TakeResponseObject(continuationAndBalances._1, Json.toJson(continuationAndBalances._2).as[JsArray]))
+            }
+          }
         }
       }
     } ~ path(Segment / "observation") { address =>

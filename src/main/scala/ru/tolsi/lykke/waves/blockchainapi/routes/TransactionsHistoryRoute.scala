@@ -42,7 +42,19 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
       } ~ path(Segment) { address =>
         get {
           parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
-            complete(fromStore.getAddressTransactions(address, take, continuation).map(Json.toJson(_)))
+            onSuccess(fromStore.getAddressTransactions(address, take + 1, continuation)) { transactionsAndOneMore =>
+              complete {
+                val continuationAndTransactions = if (transactionsAndOneMore.lengthCompare(take + 1) == 0) {
+                  // we ask the one more subsequent element only to determine if it exists
+                  val toReturn = transactionsAndOneMore.init
+                  (toReturn.last.addressAndTimestampAndHash, toReturn)
+                } else {
+                  // there are no subsequent elements
+                  ("", transactionsAndOneMore)
+                }
+                Json.toJson(TakeResponseObject(continuationAndTransactions._1, Json.toJson(continuationAndTransactions._2).as[JsArray]))
+              }
+            }
           }
         }
       }
@@ -64,7 +76,19 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
       } ~ path(Segment) { address =>
         get {
           parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
-            complete(toStore.getAddressTransactions(address, take, continuation).map(Json.toJson(_)))
+            onSuccess(toStore.getAddressTransactions(address, take + 1, continuation)) { transactionsAndOneMore =>
+              complete {
+                val continuationAndTransactions = if (transactionsAndOneMore.lengthCompare(take + 1) == 0) {
+                  // we ask the one more subsequent element only to determine if it exists
+                  val toReturn = transactionsAndOneMore.init
+                  (toReturn.last.addressAndTimestampAndHash, toReturn)
+                } else {
+                  // there are no subsequent elements
+                  ("", transactionsAndOneMore)
+                }
+                Json.toJson(TakeResponseObject(continuationAndTransactions._1, Json.toJson(continuationAndTransactions._2).as[JsArray]))
+              }
+            }
           }
         }
       }
