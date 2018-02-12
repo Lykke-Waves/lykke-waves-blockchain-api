@@ -2,6 +2,7 @@ package ru.tolsi.lykke.waves.blockchainapi
 
 import java.net.URL
 
+import com.mongodb.ServerAddress
 import com.typesafe.scalalogging.StrictLogging
 import play.api.libs.json._
 import ru.tolsi.lykke.common.NetworkType
@@ -9,7 +10,7 @@ import ru.tolsi.lykke.common.NetworkType
 import scala.util.Try
 
 object BlockchainAPISettings extends StrictLogging {
-  val Default = BlockchainAPISettings(NetworkType.Main)
+  val Default = BlockchainAPISettings(NetworkType.Main, ServerAddress.defaultHost(), ServerAddress.defaultPort())
 
   implicit val BlockchainAPISettingsReader: Reads[BlockchainAPISettings] = Json.reads[BlockchainAPISettings]
 
@@ -24,4 +25,4 @@ object BlockchainAPISettings extends StrictLogging {
   }
 }
 
-case class BlockchainAPISettings(NetworkType: NetworkType)
+case class BlockchainAPISettings(NetworkType: NetworkType, MongoDBHost: String, MongoDBPort: Int)

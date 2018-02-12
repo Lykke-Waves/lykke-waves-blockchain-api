@@ -9,10 +9,10 @@ import ru.tolsi.lykke.common.{NetworkType, Util}
 import ru.tolsi.lykke.waves.blockchainapi.routes._
 
 object Server extends App {
-  private val mongoClient = MongoClient()
-
   private val settingsUrl = Option(System.getProperty("SettingsUrl"))
   private val settings = BlockchainAPISettings.loadSettings(settingsUrl)
+
+  private val mongoClient = MongoClient(settings.MongoDBHost, settings.MongoDBPort)
 
   private val dbName = if (settings.NetworkType == NetworkType.Main) "lykke-waves" else "lykke-waves-testnet"
   private val db = mongoClient.getDB(dbName)
