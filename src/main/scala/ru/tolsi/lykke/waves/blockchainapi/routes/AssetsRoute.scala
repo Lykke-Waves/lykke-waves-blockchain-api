@@ -1,5 +1,6 @@
 package ru.tolsi.lykke.waves.blockchainapi.routes
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
@@ -13,9 +14,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object AssetsRoute {
   private implicit val AssetWrites: Writes[Asset] = Json.writes[Asset]
 }
+
 case class AssetsRoute(store: AssetsStore) extends PlayJsonSupport {
 
   import AssetsRoute._
+
   val route: Route = pathPrefix("assets") {
     pathEnd {
       get {
@@ -24,9 +27,16 @@ case class AssetsRoute(store: AssetsStore) extends PlayJsonSupport {
         }
       }
     } ~ path(Segment) { assetId =>
-        get {
-          complete(store.getAsset(assetId).map(Json.toJson(_)))
+      get {
+        onSuccess(store.getAsset(assetId)) { assetOpt =>
+          complete {
+            assetOpt match {
+              case Some(asset) => Json.toJson(asset)
+              case None => StatusCodes.NoContent
+            }
+          }
         }
       }
+    }
   }
 }
