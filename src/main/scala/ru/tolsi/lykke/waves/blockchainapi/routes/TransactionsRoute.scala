@@ -1,12 +1,11 @@
 package ru.tolsi.lykke.waves.blockchainapi.routes
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
-import play.api.libs.json.{JsBoolean, Json, Reads}
+import play.api.libs.json.{Json, Reads}
 import ru.tolsi.lykke.common.repository.{BroadcastOperation, BroadcastOperationsStore}
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 //  [POST] /api/transactions/broadcast
 //  [DELETE] /api/transactions/broadcast/{operationId}
@@ -20,19 +19,29 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object TransactionsRoute {
   private implicit val BroadcastOperationReads: Reads[BroadcastOperation] = Json.reads[BroadcastOperation]
 }
+
 case class TransactionsRoute(store: BroadcastOperationsStore) extends PlayJsonSupport {
 
   import TransactionsRoute._
+
   val route: Route = pathPrefix("transactions" / "broadcast") {
     pathEnd {
       post {
         entity(as[BroadcastOperation]) { broadcastOperation =>
-          complete(store.addBroadcastOperation(broadcastOperation).map(JsBoolean))
+          onSuccess(store.addBroadcastOperation(broadcastOperation)) { result =>
+            complete {
+              if (result) StatusCodes.OK else StatusCodes.Conflict
+            }
+          }
         }
       }
     } ~ path(Segment) { operationId =>
       delete {
-        complete(store.removeBroadcastOperation(operationId).map(JsBoolean))
+        onSuccess(store.removeBroadcastOperation(operationId)) { result =>
+          complete {
+            if (result) StatusCodes.OK else StatusCodes.NoContent
+          }
+        }
       }
     }
   }
