@@ -23,7 +23,6 @@ class Server(db: MongoDB) extends HttpApp with LykkeApiServer {
   private val capabilitiesRoute = CapabilitiesRoute().route
 
   // todo params
-  // todo not realized methods
   private val addressesRoute = new AddressesRoute(networkType).route
   private val assetsRoute = new AssetsRoute(new MongoAssetsStore(new MongoCollection(db.getCollection("assets")))).route
   private val balancesRoute = new BalancesRoute(new MongoBalancesStore(new MongoCollection(db.getCollection("balances")),
