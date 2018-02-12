@@ -70,7 +70,8 @@ object Address {
 }
 
 object AddressesRoute {
-  private implicit val addressWrites: Writes[Address] = Json.writes[Address]
+  case class ValidityResponse(isValid: Boolean)
+  private implicit val validityResponseWrites: Writes[ValidityResponse] = Json.writes[ValidityResponse]
 }
 
 //  [GET] /api/addresses/{address}/validity
@@ -82,7 +83,7 @@ case class AddressesRoute(networkType: NetworkType) extends PlayJsonSupport with
     pathPrefix(Segment) { address =>
       path("validity") {
         get {
-          complete(Address.fromString(address, scheme.toByte))
+          complete(ValidityResponse(Address.fromString(address, scheme.toByte).isSuccess))
         }
       }
     }
