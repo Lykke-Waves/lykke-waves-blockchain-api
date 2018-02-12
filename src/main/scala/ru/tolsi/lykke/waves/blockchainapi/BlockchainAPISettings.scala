@@ -19,7 +19,7 @@ object BlockchainAPISettings extends StrictLogging {
     contentStreamOpt.flatMap(c => Try {
       Json.parse(c).as[BlockchainAPISettings]
     }.toOption).getOrElse {
-      logger.warn("Can't read config from 'SettingsUrl', load by default")
+      logger.warn(s"Can't read config from 'SettingsUrl', load defaults: ${BlockchainAPISettings.Default}")
       BlockchainAPISettings.Default
     }
   }
