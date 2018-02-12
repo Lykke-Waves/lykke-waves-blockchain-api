@@ -23,6 +23,7 @@ case class AssetsRoute(store: AssetsStore) extends PlayJsonSupport {
         parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
           onSuccess(store.getAssets(take + 1, continuation)) { assetsAndOneMore =>
             complete {
+              // todo move out common take logic
               val continuationAndAssets = if (assetsAndOneMore.lengthCompare(take + 1) == 0) {
                 // we ask the one more subsequent element only to determine if it exists
                 val toReturn = assetsAndOneMore.init
@@ -40,6 +41,7 @@ case class AssetsRoute(store: AssetsStore) extends PlayJsonSupport {
       get {
         onSuccess(store.getAsset(assetId)) { assetOpt =>
           complete {
+            // todo move out common logic
             assetOpt match {
               case Some(asset) => Json.toJson(asset)
               case None => StatusCodes.NoContent

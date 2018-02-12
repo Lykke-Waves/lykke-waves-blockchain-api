@@ -70,7 +70,9 @@ object Address {
 }
 
 object AddressesRoute {
+
   case class ValidityResponse(isValid: Boolean)
+
   private implicit val validityResponseWrites: Writes[ValidityResponse] = Json.writes[ValidityResponse]
 }
 

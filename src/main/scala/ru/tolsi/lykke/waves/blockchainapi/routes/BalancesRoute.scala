@@ -7,8 +7,6 @@ import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json._
 import ru.tolsi.lykke.common.repository.{Balance, BalancesStore}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 //  [POST] /api/balances/{address}/observation
 //  [DELETE] /api/balances/{address}/observation
 //  [GET] /api/balances?take=integer&[continuation=string]
@@ -42,7 +40,8 @@ case class BalancesRoute(store: BalancesStore) extends PlayJsonSupport {
     } ~ path(Segment / "observation") { address =>
       post {
         onSuccess(store.addObservation(address)) { result =>
-          complete{
+          complete {
+            // todo move out common logic
             if (result) StatusCodes.OK else StatusCodes.Conflict
           }
         }

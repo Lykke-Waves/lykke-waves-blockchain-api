@@ -7,8 +7,6 @@ import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json._
 import ru.tolsi.lykke.common.repository.{FromAddressTransactionsStore, ToAddressTransactionsStore, Transaction}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 //  [POST] /api/transactions/history/from/{address}/observation
 //  [POST] /api/transactions/history/to/{address}/observation
 //  [DELETE] /api/transactions/history/from/{address}/observation

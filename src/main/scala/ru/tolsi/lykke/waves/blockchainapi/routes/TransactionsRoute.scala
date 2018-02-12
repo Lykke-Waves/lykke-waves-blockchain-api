@@ -24,8 +24,16 @@ case class TransactionsRoute(store: BroadcastOperationsStore) extends PlayJsonSu
 
   import TransactionsRoute._
 
-  private def notImpletementRoute0(routePath: PathMatcher0, method: => Directive0) = path(routePath) { method { complete(StatusCodes.NotImplemented) }}
-  private def notImpletementRoute1(routePath: PathMatcher1[String], method: => Directive0) = path(routePath) { _ => method { complete(StatusCodes.NotImplemented) }}
+  private def notImpletementRoute0(routePath: PathMatcher0, method: => Directive0) = path(routePath) {
+    method {
+      complete(StatusCodes.NotImplemented)
+    }
+  }
+
+  private def notImpletementRoute1(routePath: PathMatcher1[String], method: => Directive0) = path(routePath) { _ => method {
+    complete(StatusCodes.NotImplemented)
+  }
+  }
 
   val route: Route = pathPrefix("transactions") {
     pathPrefix("broadcast") {
@@ -50,6 +58,6 @@ case class TransactionsRoute(store: BroadcastOperationsStore) extends PlayJsonSu
       } ~ notImpletementRoute1("single" / Segment, get) ~
         notImpletementRoute1("many-inputs" / Segment, get) ~
         notImpletementRoute1("many-outputs" / Segment, get)
-    } ~ notImpletementRoute0("single", post) ~ notImpletementRoute0("many-inputs", post)~ notImpletementRoute0("many-outputs", post)
+    } ~ notImpletementRoute0("single", post) ~ notImpletementRoute0("many-inputs", post) ~ notImpletementRoute0("many-outputs", post)
   } ~ notImpletementRoute0("transactions", put)
 }
