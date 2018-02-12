@@ -1,5 +1,6 @@
 package ru.tolsi.lykke.waves.blockchainapi.routes
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
@@ -21,13 +22,22 @@ object TransactionsHistoryRoute {
 case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toStore: ToAddressTransactionsStore) extends PlayJsonSupport {
 
   import TransactionsHistoryRoute._
+
   val route: Route = pathPrefix("transactions" / "history") {
     pathPrefix("from") {
       path(Segment / "observation") { address =>
         post {
-          complete(fromStore.addObservation(address).map(JsBoolean))
+          onSuccess(fromStore.addObservation(address)) { result =>
+            complete {
+              if (result) StatusCodes.OK else StatusCodes.Conflict
+            }
+          }
         } ~ delete {
-          complete(fromStore.removeObservation(address).map(JsBoolean))
+          onSuccess(fromStore.removeObservation(address)) { result =>
+            complete {
+              if (result) StatusCodes.OK else StatusCodes.NoContent
+            }
+          }
         }
       } ~ path(Segment) { address =>
         get {
@@ -39,9 +49,17 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
     } ~ pathPrefix("to") {
       path(Segment / "observation") { address =>
         post {
-          complete(toStore.addObservation(address).map(JsBoolean))
+          onSuccess(toStore.addObservation(address)) { result =>
+            complete {
+              if (result) StatusCodes.OK else StatusCodes.Conflict
+            }
+          }
         } ~ delete {
-          complete(toStore.removeObservation(address).map(JsBoolean))
+          onSuccess(toStore.removeObservation(address)) { result =>
+            complete {
+              if (result) StatusCodes.OK else StatusCodes.NoContent
+            }
+          }
         }
       } ~ path(Segment) { address =>
         get {
