@@ -31,3 +31,4 @@ Due to the rather tight deadlines of the contest and lack of free time, the proj
 - [x] Make not implemented methods
 - [ ] Make the routes tests
 - [ ] Clean up the code
+- [ ] NetworkType (testnet) support
