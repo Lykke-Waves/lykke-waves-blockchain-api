@@ -4,8 +4,12 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, PathMatcher0, PathMatcher1, Route}
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
-import play.api.libs.json.{Json, Reads}
+import play.api.libs.json.{JsObject, Json, Reads, Writes}
+import ru.tolsi.lykke.common.api.WavesApi
+import ru.tolsi.lykke.common.http.ErrorMessage
 import ru.tolsi.lykke.common.repository.{BroadcastOperation, BroadcastOperationsStore}
+
+import scala.util.control.NonFatal
 
 //  [POST] /api/transactions/broadcast
 //  [DELETE] /api/transactions/broadcast/{operationId}
@@ -17,10 +21,16 @@ import ru.tolsi.lykke.common.repository.{BroadcastOperation, BroadcastOperations
 // X [GET] /api/transactions/broadcast/many-inputs/{operationId}
 // X [GET] /api/transactions/broadcast/many-outputs/{operationId}
 object TransactionsRoute {
-  private implicit val BroadcastOperationReads: Reads[BroadcastOperation] = Json.reads[BroadcastOperation]
+
+  case class BroadcastOperationRequest(operationId: String, signedTransaction: String)
+
+  case class BroadcastOperationResult(errorCode: String)
+
+  private implicit val BroadcastOperationRequestReads: Reads[BroadcastOperationRequest] = Json.reads[BroadcastOperationRequest]
+  private implicit val BroadcastOperationResultWrites: Writes[BroadcastOperationResult] = Json.writes[BroadcastOperationResult]
 }
 
-case class TransactionsRoute(store: BroadcastOperationsStore) extends PlayJsonSupport {
+case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) extends PlayJsonSupport {
 
   import TransactionsRoute._
 
@@ -40,11 +50,26 @@ case class TransactionsRoute(store: BroadcastOperationsStore) extends PlayJsonSu
     pathPrefix("broadcast") {
       pathEnd {
         post {
-          entity(as[BroadcastOperation]) { broadcastOperation =>
-            onSuccess(store.addBroadcastOperation(broadcastOperation)) { result =>
-              complete {
-                if (result) StatusCodes.OK else StatusCodes.Conflict
-              }
+          entity(as[BroadcastOperationRequest]) { broadcastOperationRequest =>
+            val idOpt = Json.parse(broadcastOperationRequest.signedTransaction).as[JsObject].fields.find(_._1 == "id").map(_._2.as[String])
+            idOpt match {
+              case Some(id) =>
+                onSuccess(store.addBroadcastOperation(BroadcastOperation(broadcastOperationRequest.operationId, id, broadcastOperationRequest.signedTransaction))) { result =>
+                  complete {
+                    if (result) {
+                      api.sendSignedTransaction(broadcastOperationRequest.signedTransaction)
+                        .map(_ => StatusCodes.OK -> BroadcastOperationResult(""))
+                        .recover {
+                          // todo check it
+                          case NonFatal(e) if e.getMessage.contains("199") => StatusCodes.OK -> BroadcastOperationResult("notEnoughBalance")
+                          // there can't be amountIsTooSmall error
+                          case NonFatal(e) => StatusCodes.InternalServerError -> BroadcastOperationResult(e.getMessage)
+                        }
+                    } else StatusCodes.Conflict
+                  }
+                }
+              case None =>
+                complete(StatusCodes.BadRequest -> Json.toJson(ErrorMessage("Invalid signed transaction", Some(Map("signedTransaction" -> Seq("There're no transaction id"))))))
             }
           }
         }
