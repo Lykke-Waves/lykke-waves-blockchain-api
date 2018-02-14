@@ -8,6 +8,7 @@ import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import ru.tolsi.lykke.common.api.WavesApi
 import ru.tolsi.lykke.common.http.ErrorMessage
 import ru.tolsi.lykke.common.repository.{BroadcastOperation, BroadcastOperationsStore}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.util.control.NonFatal
 
