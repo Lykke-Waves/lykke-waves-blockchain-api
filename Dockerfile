@@ -27,7 +27,7 @@ ENV ENV_INFO=dev
 WORKDIR /app
 COPY --from=builder /lykke-waves-blockchain-api.jar /app
 
-EXPOSE 8081 8080
+EXPOSE 8080
 
 RUN useradd -s /bin/false lykke-waves-blockchain-api
 USER lykke-waves-blockchain-api
