@@ -23,7 +23,6 @@ RUN mv `find /lykke-waves-blockchain-api/target/scala-2.12 -name *.jar` /lykke-w
 
 FROM openjdk:9-jre-slim
 MAINTAINER Sergey Tolmachev <tolsi.ru@gmail.com>
-ENV ENV_INFO=dev
 WORKDIR /app
 COPY --from=builder /lykke-waves-blockchain-api.jar /app
 
@@ -31,4 +30,9 @@ EXPOSE 8080
 
 RUN useradd -s /bin/false lykke-waves-blockchain-api
 USER lykke-waves-blockchain-api
+
+COPY config-for-docker.json /app/config.json
+ENV ENV_INFO=dev
+ENV SettingsUrl=file:///app/config.json
+
 CMD ["/usr/bin/java", "-jar", "/app/lykke-waves-blockchain-api.jar"]
