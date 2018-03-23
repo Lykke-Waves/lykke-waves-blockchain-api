@@ -1,10 +1,13 @@
-FROM bigtruedata/scala:2.12.4
+FROM anapsix/alpine-java:jdk8 as builder
 
-ENV ENV_INFO=dev
-WORKDIR /app
+RUN apk add --no-cache --update ca-certificates wget git && \
+    update-ca-certificates
 
-RUN wget -O- "https://github.com/sbt/sbt/releases/download/v1.1.0/sbt-1.1.0.tgz" \
-    |  tar xzf - -C /usr/local --strip-components=1
+RUN wget -O - https://github.com/sbt/sbt/releases/download/v1.1.0/sbt-1.1.0.tgz \
+    | gunzip \
+    | tar -x -C /usr/local
+
+ENV PATH="/usr/local/sbt/bin:${PATH}"
 
 RUN git clone https://github.com/Lykke-Waves/lykke-waves-common.git \
     && cd lykke-waves-common \
@@ -14,10 +17,18 @@ RUN git clone https://github.com/Lykke-Waves/lykke-waves-common.git \
 RUN git clone https://github.com/Lykke-Waves/lykke-waves-blockchain-api.git \
     && cd lykke-waves-blockchain-api \
     && git checkout 8b48f0a \
-    && sbt clean assembly \
-    && pwd \
-    && cp target/scala-2.12/*.jar /app
+    && sbt clean assembly
 
-EXPOSE 8080
+RUN mv `find /lykke-waves-blockchain-api/target/scala-2.12 -name *.jar` /lykke-waves-blockchain-api.jar && chmod -R 744 /lykke-waves-blockchain-api.jar
 
-CMD ["find . -name *.jar -exec java -jar {} \;"]
+FROM openjdk:9-jre-slim
+MAINTAINER Sergey Tolmachev <tolsi.ru@gmail.com>
+ENV ENV_INFO=dev
+WORKDIR /app
+COPY --from=builder /lykke-waves-blockchain-api.jar /app
+
+EXPOSE 8081 8080
+
+RUN useradd -s /bin/false lykke-waves-blockchain-api
+USER lykke-waves-blockchain-api
+CMD ["/usr/bin/java", "-jar", "/app/lykke-waves-blockchain-api.jar"]
