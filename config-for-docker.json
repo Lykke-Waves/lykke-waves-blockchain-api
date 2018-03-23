@@ -1,0 +1,7 @@
+{
+  "NetworkType": "test",
+  "MongoDBHost": "mongo",
+  "MongoDBPort": 27017,
+  "ServiceHost": "localhost",
+  "ServicePort": 8080
+}
