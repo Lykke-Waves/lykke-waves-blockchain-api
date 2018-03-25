@@ -6,11 +6,13 @@ version in ThisBuild := {
   if (git.gitCurrentTags.value.nonEmpty) {
     git.gitDescribedVersion.value.get
   } else {
-    if (git.gitHeadCommit.value.contains(git.gitCurrentBranch.value)) {
-      git.gitHeadCommit.value.get.take(8) + "-SNAPSHOT"
-    } else {
-      git.gitCurrentBranch.value + "-" + git.gitHeadCommit.value.get.take(8) + "-SNAPSHOT"
-    }
+    git.gitDescribedVersion.value.get + "-" + {
+      if (git.gitHeadCommit.value.contains(git.gitCurrentBranch.value)) {
+        git.gitHeadCommit.value.get.take(8)
+      } else {
+        git.gitCurrentBranch.value
+      }
+    } + "-SNAPSHOT"
   }
 }
 
