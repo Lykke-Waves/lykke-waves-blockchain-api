@@ -26,14 +26,14 @@ object TransactionsRoute {
 
   case class BroadcastOperationRequest(operationId: String, signedTransaction: String)
 
-  case class BroadcastOperationResult(errorCode: String)
+  case class OperationResult(errorCode: String)
 
   case class BuildTransactionRequest(operationId: String, fromAddress: String, fromAddressContext: String, toAddress: String, assetId: String, amount: String, includeFee: Boolean)
 
   case class TransactionContext(transactionContext: String)
 
   private implicit val BroadcastOperationRequestReads: Reads[BroadcastOperationRequest] = Json.reads[BroadcastOperationRequest]
-  private implicit val BroadcastOperationResultWrites: Writes[BroadcastOperationResult] = Json.writes[BroadcastOperationResult]
+  private implicit val BroadcastOperationResultWrites: Writes[OperationResult] = Json.writes[OperationResult]
   private implicit val BuildTransactionRequestReads: Reads[BuildTransactionRequest] = Json.reads[BuildTransactionRequest]
   private implicit val TransactionContextWrites: Writes[TransactionContext] = Json.writes[TransactionContext]
 }
@@ -66,12 +66,12 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
                   complete {
                     if (result) {
                       api.sendSignedTransaction(broadcastOperationRequest.signedTransaction)
-                        .map(_ => StatusCodes.OK -> BroadcastOperationResult(""))
+                        .map(_ => StatusCodes.OK -> OperationResult(""))
                         .recover {
                           // todo check it
-                          case NonFatal(e) if e.getMessage.contains("199") => StatusCodes.OK -> BroadcastOperationResult("notEnoughBalance")
+                          case NonFatal(e) if e.getMessage.contains("199") => StatusCodes.OK -> OperationResult("notEnoughBalance")
                           // there can't be amountIsTooSmall error
-                          case NonFatal(e) => StatusCodes.InternalServerError -> BroadcastOperationResult(e.getMessage)
+                          case NonFatal(e) => StatusCodes.InternalServerError -> OperationResult(e.getMessage)
                         }
                     } else StatusCodes.Conflict
                   }
@@ -85,20 +85,26 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
         post {
           entity(as[BuildTransactionRequest]) { transactionBuildRequest =>
             complete {
-              TransactionContext(UnsignedTransferTransaction(transactionBuildRequest.fromAddress,
-                transactionBuildRequest.toAddress,
-                if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
-                  transactionBuildRequest.amount.toLong - 100000
-                } else {
-                  transactionBuildRequest.amount.toLong
-                },
-                100000,
-                if (transactionBuildRequest.assetId != "WAVES") {
-                  Some(transactionBuildRequest.assetId)
-                } else {
-                  None
-                }
-              ).toJsonString)
+              //todo notEnoughBalance - transaction can’t be executed due to balance insufficiency on the source address
+              val amountAfterFee = if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
+                transactionBuildRequest.amount.toLong - 100000
+              } else {
+                transactionBuildRequest.amount.toLong
+              }
+              if (amountAfterFee <= 0) {
+                StatusCodes.InternalServerError -> OperationResult("amountIsTooSmall")
+              } else {
+                TransactionContext(UnsignedTransferTransaction(transactionBuildRequest.fromAddress,
+                  transactionBuildRequest.toAddress,
+                  amountAfterFee,
+                  100000,
+                  if (transactionBuildRequest.assetId != "WAVES") {
+                    Some(transactionBuildRequest.assetId)
+                  } else {
+                    None
+                  }
+                ).toJsonString)
+              }
             }
           }
         }
