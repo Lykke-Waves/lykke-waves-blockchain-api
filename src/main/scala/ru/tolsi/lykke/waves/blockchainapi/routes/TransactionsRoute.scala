@@ -84,26 +84,30 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
       } ~ path("single") {
         post {
           entity(as[BuildTransactionRequest]) { transactionBuildRequest =>
-            complete {
-              //todo notEnoughBalance - transaction can’t be executed due to balance insufficiency on the source address
-              val amountAfterFee = if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
-                transactionBuildRequest.amount.toLong - 100000
-              } else {
-                transactionBuildRequest.amount.toLong
-              }
-              if (amountAfterFee <= 0) {
-                StatusCodes.InternalServerError -> OperationResult("amountIsTooSmall")
-              } else {
-                TransactionContext(UnsignedTransferTransaction(transactionBuildRequest.fromAddress,
-                  transactionBuildRequest.toAddress,
-                  amountAfterFee,
-                  100000,
-                  if (transactionBuildRequest.assetId != "WAVES") {
-                    Some(transactionBuildRequest.assetId)
-                  } else {
-                    None
-                  }
-                ).toJsonString)
+            val amountAfterFee = if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
+              transactionBuildRequest.amount.toLong - 100000
+            } else {
+              transactionBuildRequest.amount.toLong
+            }
+            onSuccess(api.balance(transactionBuildRequest.fromAddress)) { balance =>
+              complete {
+                if (amountAfterFee <= 0) {
+                  StatusCodes.InternalServerError -> OperationResult("amountIsTooSmall")
+                } else if (balance < transactionBuildRequest.amount.toLong) {
+                  StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
+                } else {
+                  TransactionContext(UnsignedTransferTransaction(
+                    transactionBuildRequest.fromAddress,
+                    transactionBuildRequest.toAddress,
+                    amountAfterFee,
+                    100000,
+                    if (transactionBuildRequest.assetId != "WAVES") {
+                      Some(transactionBuildRequest.assetId)
+                    } else {
+                      None
+                    }
+                  ).toJsonString)
+                }
               }
             }
           }
