@@ -5,16 +5,17 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, PathMatcher0, PathMatcher1, Route}
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json.{JsObject, Json, Reads, Writes}
+import ru.tolsi.lykke.common.UnsignedTransferTransaction
 import ru.tolsi.lykke.common.api.WavesApi
 import ru.tolsi.lykke.common.http.ErrorMessage
 import ru.tolsi.lykke.common.repository.{BroadcastOperation, BroadcastOperationsStore}
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NonFatal
 
 //  [POST] /api/transactions/broadcast
 //  [DELETE] /api/transactions/broadcast/{operationId}
-// X [POST] /api/transactions/single
+//  [POST] /api/transactions/single
 // X [POST] /api/transactions/many-inputs
 // X [POST] /api/transactions/many-outputs
 // X [PUT] /api/transactions
@@ -27,8 +28,14 @@ object TransactionsRoute {
 
   case class BroadcastOperationResult(errorCode: String)
 
+  case class BuildTransactionRequest(operationId: String, fromAddress: String, fromAddressContext: String, toAddress: String, assetId: String, amount: String, includeFee: Boolean)
+
+  case class TransactionContext(transactionContext: String)
+
   private implicit val BroadcastOperationRequestReads: Reads[BroadcastOperationRequest] = Json.reads[BroadcastOperationRequest]
   private implicit val BroadcastOperationResultWrites: Writes[BroadcastOperationResult] = Json.writes[BroadcastOperationResult]
+  private implicit val BuildTransactionRequestReads: Reads[BuildTransactionRequest] = Json.reads[BuildTransactionRequest]
+  private implicit val TransactionContextWrites: Writes[TransactionContext] = Json.writes[TransactionContext]
 }
 
 case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) extends PlayJsonSupport {
@@ -74,6 +81,27 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
             }
           }
         }
+      } ~ path("single") {
+        post {
+          entity(as[BuildTransactionRequest]) { transactionBuildRequest =>
+            complete {
+              TransactionContext(UnsignedTransferTransaction(transactionBuildRequest.fromAddress,
+                transactionBuildRequest.toAddress,
+                if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
+                  transactionBuildRequest.amount.toLong - 100000
+                } else {
+                  transactionBuildRequest.amount.toLong
+                },
+                100000,
+                if (transactionBuildRequest.assetId != "WAVES") {
+                  Some(transactionBuildRequest.assetId)
+                } else {
+                  None
+                }
+              ).toJsonString)
+            }
+          }
+        }
       } ~ path(Segment) { operationId =>
         delete {
           onSuccess(store.removeBroadcastOperation(operationId)) { result =>
@@ -82,7 +110,7 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
             }
           }
         }
-      } ~ notImpletementRoute1("single" / Segment, get) ~
+      } ~
         notImpletementRoute1("many-inputs" / Segment, get) ~
         notImpletementRoute1("many-outputs" / Segment, get)
     } ~ notImpletementRoute0("single", post) ~ notImpletementRoute0("many-inputs", post) ~ notImpletementRoute0("many-outputs", post)
