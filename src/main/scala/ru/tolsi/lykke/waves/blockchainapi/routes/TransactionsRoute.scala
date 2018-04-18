@@ -56,7 +56,7 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
 
   val route: Route = pathPrefix("transactions") {
     pathPrefix("broadcast") {
-      pathEnd {
+      path("single") {
         post {
           entity(as[BroadcastOperationRequest]) { broadcastOperationRequest =>
             val idOpt = Json.parse(broadcastOperationRequest.signedTransaction).as[JsObject].fields.find(_._1 == "id").map(_._2.as[String])
@@ -81,37 +81,6 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
             }
           }
         }
-      } ~ path("single") {
-        post {
-          entity(as[BuildTransactionRequest]) { transactionBuildRequest =>
-            val amountAfterFee = if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
-              transactionBuildRequest.amount.toLong - 100000
-            } else {
-              transactionBuildRequest.amount.toLong
-            }
-            onSuccess(api.balance(transactionBuildRequest.fromAddress)) { balance =>
-              complete {
-                if (amountAfterFee <= 0) {
-                  StatusCodes.InternalServerError -> OperationResult("amountIsTooSmall")
-                } else if (balance < transactionBuildRequest.amount.toLong) {
-                  StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
-                } else {
-                  TransactionContext(UnsignedTransferTransaction(
-                    transactionBuildRequest.fromAddress,
-                    transactionBuildRequest.toAddress,
-                    amountAfterFee,
-                    100000,
-                    if (transactionBuildRequest.assetId != "WAVES") {
-                      Some(transactionBuildRequest.assetId)
-                    } else {
-                      None
-                    }
-                  ).toJsonString)
-                }
-              }
-            }
-          }
-        }
       } ~ path(Segment) { operationId =>
         delete {
           onSuccess(store.removeBroadcastOperation(operationId)) { result =>
@@ -123,6 +92,37 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
       } ~
         notImpletementRoute1("many-inputs" / Segment, get) ~
         notImpletementRoute1("many-outputs" / Segment, get)
-    } ~ notImpletementRoute0("single", post) ~ notImpletementRoute0("many-inputs", post) ~ notImpletementRoute0("many-outputs", post)
+    }  ~ path("single") {
+      post {
+        entity(as[BuildTransactionRequest]) { transactionBuildRequest =>
+          val amountAfterFee = if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
+            transactionBuildRequest.amount.toLong - 100000
+          } else {
+            transactionBuildRequest.amount.toLong
+          }
+          onSuccess(api.balance(transactionBuildRequest.fromAddress)) { balance =>
+            complete {
+              if (amountAfterFee <= 0) {
+                StatusCodes.InternalServerError -> OperationResult("amountIsTooSmall")
+              } else if (balance < transactionBuildRequest.amount.toLong) {
+                StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
+              } else {
+                TransactionContext(UnsignedTransferTransaction(
+                  transactionBuildRequest.fromAddress,
+                  transactionBuildRequest.toAddress,
+                  amountAfterFee,
+                  100000,
+                  if (transactionBuildRequest.assetId != "WAVES") {
+                    Some(transactionBuildRequest.assetId)
+                  } else {
+                    None
+                  }
+                ).toJsonString)
+              }
+            }
+          }
+        }
+      }
+    } ~ notImpletementRoute0("many-inputs", post) ~ notImpletementRoute0("many-outputs", post)
   } ~ notImpletementRoute0("transactions", put)
 }
