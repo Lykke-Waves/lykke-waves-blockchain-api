@@ -3,6 +3,7 @@ package ru.tolsi.lykke.waves.blockchainapi.routes
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, PathMatcher0, PathMatcher1, Route}
+import com.typesafe.scalalogging.StrictLogging
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import ru.tolsi.lykke.common.UnsignedTransferTransaction
@@ -38,7 +39,7 @@ object TransactionsRoute {
   private implicit val TransactionContextWrites: Writes[TransactionContext] = Json.writes[TransactionContext]
 }
 
-case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) extends PlayJsonSupport {
+case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) extends PlayJsonSupport with StrictLogging {
 
   import TransactionsRoute._
 
@@ -69,9 +70,13 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
                         .map(_ => StatusCodes.OK -> OperationResult(""))
                         .recover {
                           // todo check it
-                          case NonFatal(e) if e.getMessage.contains("199") => StatusCodes.OK -> OperationResult("notEnoughBalance")
+                          case NonFatal(e) if e.getMessage.contains("199") =>
+                            logger.debug("Error on broadcast tx, not enough balance", e)
+                            StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
                           // there can't be amountIsTooSmall error
-                          case NonFatal(e) => StatusCodes.InternalServerError -> OperationResult(e.getMessage)
+                          case NonFatal(e) =>
+                            logger.error("Error on broadcast tx", e)
+                            StatusCodes.InternalServerError -> OperationResult(e.getMessage)
                         }
                     } else StatusCodes.Conflict
                   }
