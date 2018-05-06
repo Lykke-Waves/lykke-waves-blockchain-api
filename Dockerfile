@@ -16,7 +16,7 @@ RUN git clone https://github.com/Lykke-Waves/lykke-waves-common.git \
 
 RUN git clone https://github.com/Lykke-Waves/lykke-waves-blockchain-api.git \
     && cd lykke-waves-blockchain-api \
-    && git checkout 0.0.7 \
+    && git checkout 0.0.8 \
     && sbt clean assembly
 
 RUN mv `find /lykke-waves-blockchain-api/target/scala-2.12 -name *.jar` /lykke-waves-blockchain-api.jar && chmod -R 744 /lykke-waves-blockchain-api.jar
