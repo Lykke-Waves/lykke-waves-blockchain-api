@@ -57,47 +57,47 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
 
   val route: Route = pathPrefix("transactions") {
     pathPrefix("broadcast") {
-      path("single") {
-        post {
-          entity(as[BroadcastOperationRequest]) { broadcastOperationRequest =>
-            val idOpt = Json.parse(broadcastOperationRequest.signedTransaction).as[JsObject].fields.find(_._1 == "id").map(_._2.as[String])
-            idOpt match {
-              case Some(id) =>
-                onSuccess(store.addBroadcastOperation(BroadcastOperation(broadcastOperationRequest.operationId, id, broadcastOperationRequest.signedTransaction))) { result =>
-                  complete {
-                    if (result) {
-                      api.sendSignedTransaction(broadcastOperationRequest.signedTransaction)
-                        .map(_ => StatusCodes.OK -> OperationResult(""))
-                        .recover {
-                          // todo check it
-                          case NonFatal(e) if e.getMessage.contains("199") =>
-                            logger.debug("Error on broadcast tx, not enough balance", e)
-                            StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
-                          // there can't be amountIsTooSmall error
-                          case NonFatal(e) =>
-                            logger.error("Error on broadcast tx", e)
-                            StatusCodes.InternalServerError -> OperationResult(e.getMessage)
-                        }
-                    } else StatusCodes.Conflict
-                  }
+      post {
+        entity(as[BroadcastOperationRequest]) { broadcastOperationRequest =>
+          val idOpt = Json.parse(broadcastOperationRequest.signedTransaction).as[JsObject].fields.find(_._1 == "id").map(_._2.as[String])
+          idOpt match {
+            case Some(id) =>
+              onSuccess(store.addBroadcastOperation(BroadcastOperation(broadcastOperationRequest.operationId, id, broadcastOperationRequest.signedTransaction))) { result =>
+                complete {
+                  if (result) {
+                    api.sendSignedTransaction(broadcastOperationRequest.signedTransaction)
+                      .map(_ => StatusCodes.OK -> OperationResult(""))
+                      .recover {
+                        // todo check it
+                        case NonFatal(e) if e.getMessage.contains("199") =>
+                          logger.debug("Error on broadcast tx, not enough balance", e)
+                          StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
+                        // there can't be amountIsTooSmall error
+                        case NonFatal(e) =>
+                          logger.error("Error on broadcast tx", e)
+                          StatusCodes.InternalServerError -> OperationResult(e.getMessage)
+                      }
+                  } else StatusCodes.Conflict
                 }
-              case None =>
-                complete(StatusCodes.BadRequest -> Json.toJson(ErrorMessage("Invalid signed transaction", Some(Map("signedTransaction" -> Seq("There're no transaction id"))))))
-            }
+              }
+            case None =>
+              complete(StatusCodes.BadRequest -> Json.toJson(ErrorMessage("Invalid signed transaction", Some(Map("signedTransaction" -> Seq("There're no transaction id"))))))
           }
         }
-      } ~ path(Segment) { operationId =>
-        delete {
-          onSuccess(store.removeBroadcastOperation(operationId)) { result =>
-            complete {
-              if (result) StatusCodes.OK else StatusCodes.NoContent
+      } ~ pathPrefix("single") {
+        path(Segment) { operationId =>
+          delete {
+            onSuccess(store.removeBroadcastOperation(operationId)) { result =>
+              complete {
+                if (result) StatusCodes.OK else StatusCodes.NoContent
+              }
             }
           }
-        }
-      } ~
-        notImpletementRoute1("many-inputs" / Segment, get) ~
-        notImpletementRoute1("many-outputs" / Segment, get)
-    }  ~ path("single") {
+        } ~
+          notImpletementRoute1("many-inputs" / Segment, get) ~
+          notImpletementRoute1("many-outputs" / Segment, get)
+      }
+    } ~ path("single") {
       post {
         entity(as[BuildTransactionRequest]) { transactionBuildRequest =>
           val amountAfterFee = if (transactionBuildRequest.includeFee && transactionBuildRequest.assetId == "WAVES") {
