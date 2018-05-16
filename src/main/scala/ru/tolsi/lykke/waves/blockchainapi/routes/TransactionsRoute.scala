@@ -56,7 +56,7 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
   }
 
   val route: Route = pathPrefix("transactions") {
-    pathPrefix("broadcast") {
+    path("broadcast") {
       post {
         entity(as[BroadcastOperationRequest]) { broadcastOperationRequest =>
           val idOpt = Json.parse(broadcastOperationRequest.signedTransaction).as[JsObject].fields.find(_._1 == "id").map(_._2.as[String])
