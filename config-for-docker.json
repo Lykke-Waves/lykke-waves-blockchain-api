@@ -2,6 +2,6 @@
   "NetworkType": "test",
   "MongoDBHost": "mongo",
   "MongoDBPort": 27017,
-  "ServiceHost": "localhost",
+  "ServiceHost": "0.0.0.0",
   "ServicePort": 8080
 }
