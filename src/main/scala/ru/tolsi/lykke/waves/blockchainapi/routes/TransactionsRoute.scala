@@ -1,5 +1,6 @@
 package ru.tolsi.lykke.waves.blockchainapi.routes
 
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, PathMatcher0, PathMatcher1, Route}
@@ -12,6 +13,8 @@ import ru.tolsi.lykke.common.http.ErrorMessage
 import ru.tolsi.lykke.common.repository.{BroadcastOperation, BroadcastOperationsStore}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 //  [POST] /api/transactions/broadcast
@@ -62,23 +65,27 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
           val idOpt = Json.parse(broadcastOperationRequest.signedTransaction).as[JsObject].fields.find(_._1 == "id").map(_._2.as[String])
           idOpt match {
             case Some(id) =>
-              onSuccess(store.addBroadcastOperation(BroadcastOperation(broadcastOperationRequest.operationId, id, broadcastOperationRequest.signedTransaction))) { result =>
-                complete {
-                  if (result) {
-                    api.sendSignedTransaction(broadcastOperationRequest.signedTransaction)
-                      .map(_ => StatusCodes.OK -> OperationResult(""))
-                      .recover {
-                        // todo check it
-                        case NonFatal(e) if e.getMessage.contains("199") =>
-                          logger.debug("Error on broadcast tx, not enough balance", e)
-                          StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
-                        // there can't be amountIsTooSmall error
-                        case NonFatal(e) =>
-                          logger.error("Error on broadcast tx", e)
-                          StatusCodes.InternalServerError -> OperationResult(e.getMessage)
-                      }
-                  } else StatusCodes.Conflict
-                }
+              onComplete(store.addBroadcastOperation(BroadcastOperation(broadcastOperationRequest.operationId, id, broadcastOperationRequest.signedTransaction))) {
+                case Success(result) =>
+                  complete {
+                    if (result) {
+                      api.sendSignedTransaction(broadcastOperationRequest.signedTransaction)
+                        .map(_ => StatusCodes.OK -> OperationResult(""))
+                        .recover {
+                          // todo check it
+                          case NonFatal(e) if e.getMessage.contains("199") =>
+                            logger.debug("Error on broadcast tx, not enough balance", e)
+                            StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
+                          // there can't be amountIsTooSmall error
+                          case NonFatal(e) =>
+                            logger.error("Error on broadcast tx", e)
+                            StatusCodes.InternalServerError -> OperationResult(e.getMessage)
+                        }
+                    } else StatusCodes.Conflict
+                  }
+                case Failure(NonFatal(f)) =>
+                  logger.error("Add broadcast operation to database error", f)
+                  complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Add broadcast operation to database error")))
               }
             case None =>
               complete(StatusCodes.BadRequest -> Json.toJson(ErrorMessage("Invalid signed transaction", Some(Map("signedTransaction" -> Seq("There're no transaction id"))))))
@@ -87,10 +94,14 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
       } ~ pathPrefix("single") {
         path(Segment) { operationId =>
           delete {
-            onSuccess(store.removeBroadcastOperation(operationId)) { result =>
-              complete {
-                if (result) StatusCodes.OK else StatusCodes.NoContent
-              }
+            onComplete(store.removeBroadcastOperation(operationId)) {
+              case Success(result) =>
+                complete {
+                  if (result) StatusCodes.OK else StatusCodes.NoContent
+                }
+              case Failure(NonFatal(f)) =>
+                logger.error("Remove broadcast operation from database error", f)
+                complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Remove broadcast operation from database error")))
             }
           }
         } ~
@@ -105,26 +116,30 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
           } else {
             transactionBuildRequest.amount.toLong
           }
-          onSuccess(api.balance(transactionBuildRequest.fromAddress)) { balance =>
-            complete {
-              if (amountAfterFee <= 0) {
-                StatusCodes.InternalServerError -> OperationResult("amountIsTooSmall")
-              } else if (balance < transactionBuildRequest.amount.toLong) {
-                StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
-              } else {
-                TransactionContext(UnsignedTransferTransaction(
-                  transactionBuildRequest.fromAddress,
-                  transactionBuildRequest.toAddress,
-                  amountAfterFee,
-                  100000,
-                  if (transactionBuildRequest.assetId != "WAVES") {
-                    Some(transactionBuildRequest.assetId)
-                  } else {
-                    None
-                  }
-                ).toJsonString)
+          onComplete(api.balance(transactionBuildRequest.fromAddress)) {
+            case Success(balance) =>
+              complete {
+                if (amountAfterFee <= 0) {
+                  StatusCodes.InternalServerError -> OperationResult("amountIsTooSmall")
+                } else if (balance < transactionBuildRequest.amount.toLong) {
+                  StatusCodes.InternalServerError -> OperationResult("notEnoughBalance")
+                } else {
+                  TransactionContext(UnsignedTransferTransaction(
+                    transactionBuildRequest.fromAddress,
+                    transactionBuildRequest.toAddress,
+                    amountAfterFee,
+                    100000,
+                    if (transactionBuildRequest.assetId != "WAVES") {
+                      Some(transactionBuildRequest.assetId)
+                    } else {
+                      None
+                    }
+                  ).toJsonString)
+                }
               }
-            }
+            case Failure(NonFatal(f)) =>
+              logger.error("Read balance from database error", f)
+              complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Read balance from database error")))
           }
         }
       }

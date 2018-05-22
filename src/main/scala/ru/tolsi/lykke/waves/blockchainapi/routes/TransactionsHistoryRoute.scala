@@ -3,9 +3,14 @@ package ru.tolsi.lykke.waves.blockchainapi.routes
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import com.typesafe.scalalogging.StrictLogging
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
 import play.api.libs.json._
+import ru.tolsi.lykke.common.http.ErrorMessage
 import ru.tolsi.lykke.common.repository.{FromAddressTransactionsStore, ToAddressTransactionsStore, Transaction}
+
+import scala.util.{Failure, Success}
+import scala.util.control.NonFatal
 
 //  [POST] /api/transactions/history/from/{address}/observation
 //  [POST] /api/transactions/history/to/{address}/observation
@@ -17,7 +22,7 @@ object TransactionsHistoryRoute {
   private implicit val BalaceWrites: Writes[Transaction] = Json.writes[Transaction]
 }
 
-case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toStore: ToAddressTransactionsStore) extends PlayJsonSupport {
+case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toStore: ToAddressTransactionsStore) extends PlayJsonSupport with StrictLogging {
 
   import TransactionsHistoryRoute._
 
@@ -25,33 +30,45 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
     pathPrefix("from") {
       path(Segment / "observation") { address =>
         post {
-          onSuccess(fromStore.addObservation(address)) { result =>
-            complete {
-              if (result) StatusCodes.OK else StatusCodes.Conflict
-            }
+          onComplete(fromStore.addObservation(address)) {
+            case Success(result) =>
+              complete {
+                if (result) StatusCodes.OK else StatusCodes.Conflict
+              }
+            case Failure(NonFatal(f)) =>
+              logger.error("Add observation to database error", f)
+              complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Add observation to database error")))
           }
         } ~ delete {
-          onSuccess(fromStore.removeObservation(address)) { result =>
-            complete {
-              if (result) StatusCodes.OK else StatusCodes.NoContent
-            }
+          onComplete(fromStore.removeObservation(address)) {
+            case Success(result) =>
+              complete {
+                if (result) StatusCodes.OK else StatusCodes.NoContent
+              }
+            case Failure(NonFatal(f)) =>
+              logger.error("Delete observation from database error", f)
+              complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Add observation from database error")))
           }
         }
       } ~ path(Segment) { address =>
         get {
           parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
-            onSuccess(fromStore.getAddressTransactions(address, take + 1, continuation)) { transactionsAndOneMore =>
-              complete {
-                val continuationAndTransactions = if (transactionsAndOneMore.lengthCompare(take + 1) == 0) {
-                  // we ask the one more subsequent element only to determine if it exists
-                  val toReturn = transactionsAndOneMore.init
-                  (toReturn.last.addressAndTimestampAndHash, toReturn)
-                } else {
-                  // there are no subsequent elements
-                  ("", transactionsAndOneMore)
+            onComplete(fromStore.getAddressTransactions(address, take + 1, continuation)) {
+              case Success(transactionsAndOneMore) =>
+                complete {
+                  val continuationAndTransactions = if (transactionsAndOneMore.lengthCompare(take + 1) == 0) {
+                    // we ask the one more subsequent element only to determine if it exists
+                    val toReturn = transactionsAndOneMore.init
+                    (toReturn.last.addressAndTimestampAndHash, toReturn)
+                  } else {
+                    // there are no subsequent elements
+                    ("", transactionsAndOneMore)
+                  }
+                  Json.toJson(TakeResponseObject(continuationAndTransactions._1, Json.toJson(continuationAndTransactions._2).as[JsArray]))
                 }
-                Json.toJson(TakeResponseObject(continuationAndTransactions._1, Json.toJson(continuationAndTransactions._2).as[JsArray]))
-              }
+              case Failure(NonFatal(f)) =>
+                logger.error("Get observation data from database error", f)
+                complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Get observation data from database error")))
             }
           }
         }
@@ -59,33 +76,45 @@ case class TransactionsHistoryRoute(fromStore: FromAddressTransactionsStore, toS
     } ~ pathPrefix("to") {
       path(Segment / "observation") { address =>
         post {
-          onSuccess(toStore.addObservation(address)) { result =>
-            complete {
-              if (result) StatusCodes.OK else StatusCodes.Conflict
-            }
+          onComplete(toStore.addObservation(address)) {
+            case Success(result) =>
+              complete {
+                if (result) StatusCodes.OK else StatusCodes.Conflict
+              }
+            case Failure(NonFatal(f)) =>
+              logger.error("Add observation to database error", f)
+              complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Add observation to database error")))
           }
         } ~ delete {
-          onSuccess(toStore.removeObservation(address)) { result =>
-            complete {
-              if (result) StatusCodes.OK else StatusCodes.NoContent
-            }
+          onComplete(toStore.removeObservation(address)) {
+            case Success(result) =>
+              complete {
+                if (result) StatusCodes.OK else StatusCodes.NoContent
+              }
+            case Failure(NonFatal(f)) =>
+              logger.error("Delete observation from database error", f)
+              complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Add observation from database error")))
           }
         }
       } ~ path(Segment) { address =>
         get {
           parameters('take.as[Int], 'continuation.as[String] ?) { case (take, continuation) =>
-            onSuccess(toStore.getAddressTransactions(address, take + 1, continuation)) { transactionsAndOneMore =>
-              complete {
-                val continuationAndTransactions = if (transactionsAndOneMore.lengthCompare(take + 1) == 0) {
-                  // we ask the one more subsequent element only to determine if it exists
-                  val toReturn = transactionsAndOneMore.init
-                  (toReturn.last.addressAndTimestampAndHash, toReturn)
-                } else {
-                  // there are no subsequent elements
-                  ("", transactionsAndOneMore)
+            onComplete(toStore.getAddressTransactions(address, take + 1, continuation)) {
+              case Success(transactionsAndOneMore) =>
+                complete {
+                  val continuationAndTransactions = if (transactionsAndOneMore.lengthCompare(take + 1) == 0) {
+                    // we ask the one more subsequent element only to determine if it exists
+                    val toReturn = transactionsAndOneMore.init
+                    (toReturn.last.addressAndTimestampAndHash, toReturn)
+                  } else {
+                    // there are no subsequent elements
+                    ("", transactionsAndOneMore)
+                  }
+                  Json.toJson(TakeResponseObject(continuationAndTransactions._1, Json.toJson(continuationAndTransactions._2).as[JsArray]))
                 }
-                Json.toJson(TakeResponseObject(continuationAndTransactions._1, Json.toJson(continuationAndTransactions._2).as[JsArray]))
-              }
+              case Failure(NonFatal(f)) =>
+                logger.error("Get observation data from database error", f)
+                complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Get observation data from database error")))
             }
           }
         }
