@@ -29,7 +29,7 @@ class Server(db: MongoDB, settings: BlockchainAPISettings) extends HttpApp with 
 
   private val capabilitiesRoute = CapabilitiesRoute().route
 
-  private val apiUrl = if (settings.NetworkType == NetworkType.Main) "https://nodes.wavesnodes.com" else "https://testnodes.wavesnodes.com/"
+  private val apiUrl = if (settings.NetworkType == NetworkType.Main) "https://nodes.wavesnodes.com" else "https://testnodes.wavesnodes.com"
   private val api = new WavesApi(apiUrl)
 
   private val addressesRoute = new AddressesRoute(networkType).route
