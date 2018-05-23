@@ -17,7 +17,8 @@ version in ThisBuild := {
 }
 
 libraryDependencies ++= Seq(
-  "ru.tolsi" %% "lykke-waves-common" % "0.0.8" % "compile->compile;test->test"
+  "ru.tolsi" %% "lykke-waves-common" % "0.0.8" % "compile->compile;test->test",
+  "com.github.nscala-time" %% "nscala-time" % "2.20.0"
 )
 
 sourceGenerators in Compile += Def.task {

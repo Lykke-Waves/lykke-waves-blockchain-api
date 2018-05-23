@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, PathMatcher0, PathMatcher1, Route}
 import com.typesafe.scalalogging.StrictLogging
 import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport
+import org.joda.time.DateTime
 import play.api.libs.json.{JsObject, Json, Reads, Writes}
 import ru.tolsi.lykke.common.UnsignedTransferTransaction
 import ru.tolsi.lykke.common.api.{WavesApi, WavesTransferTransaction}
@@ -36,7 +37,7 @@ object TransactionsRoute {
 
   case class TransactionContext(transactionContext: String)
 
-  case class BroadcastOperationGetResponse(operationId: String, state: String, timestamp: Long, amount: String, fee: String, hash: String, error: Option[String], errorCode: Option[String], block: Option[Int])
+  case class BroadcastOperationGetResponse(operationId: String, state: String, timestamp: String, amount: String, fee: String, hash: String, error: Option[String], errorCode: Option[String], block: Option[Int])
 
   private implicit val BroadcastOperationRequestReads: Reads[BroadcastOperationRequest] = Json.reads[BroadcastOperationRequest]
   private implicit val BroadcastOperationResultWrites: Writes[OperationResult] = Json.writes[OperationResult]
@@ -113,7 +114,7 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
               operationOpt match {
                 case Some(broadcastOperation) =>
                   val txJson = Json.parse(broadcastOperation.signedTransaction).as[JsObject].fields.toMap
-                  val resp = BroadcastOperationGetResponse(broadcastOperation.operationId, "unknown", txJson("timestamp").as[Long],
+                  val resp = BroadcastOperationGetResponse(broadcastOperation.operationId, "unknown", new DateTime(txJson("timestamp").as[Long]).toString,
                     txJson("amount").as[String], txJson("fee").as[String], broadcastOperation.transactionId,
                     None, None, None)
                   onComplete(api.transactionInfo(broadcastOperation.transactionId)) {
