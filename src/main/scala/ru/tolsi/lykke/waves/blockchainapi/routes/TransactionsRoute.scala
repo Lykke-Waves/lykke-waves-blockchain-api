@@ -63,7 +63,7 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
   }
 
   val route: Route = pathPrefix("transactions") {
-    path("broadcast") {
+    pathPrefix("broadcast") {
       post {
         entity(as[BroadcastOperationRequest]) { broadcastOperationRequest =>
           val idOpt = Json.parse(broadcastOperationRequest.signedTransaction).as[JsObject].fields.find(_._1 == "id").map(_._2.as[String])
@@ -107,44 +107,42 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
               complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Remove broadcast operation from database error")))
           }
         }
-      } ~ pathPrefix("single") {
-        path(Segment) { operationId =>
-          onComplete(store.findBroadcastOperationByOperationId(operationId)) {
-            case Success(operationOpt) =>
-              operationOpt match {
-                case Some(broadcastOperation) =>
-                  val txJson = Json.parse(broadcastOperation.signedTransaction).as[JsObject].fields.toMap
-                  val resp = BroadcastOperationGetResponse(broadcastOperation.operationId, "unknown", new DateTime(txJson("timestamp").as[Long]).toString,
-                    txJson("amount").as[String], txJson("fee").as[String], broadcastOperation.transactionId,
-                    None, None, None)
-                  onComplete(api.transactionInfo(broadcastOperation.transactionId)) {
-                    case Success(Some(tx)) =>
-                      complete(resp.copy(state = "completed", block = Some(tx.asInstanceOf[WavesTransferTransaction].height.get)))
-                    case Success(None) =>
-                      onComplete(api.utx()) {
-                        case Success(utx) =>
-                          complete {
-                            if (utx.exists(_.id == broadcastOperation.transactionId)) {
-                              resp.copy(state = "inProgress")
-                            } else {
-                              resp.copy(state = "failed", errorCode = Some("unknown"), error = Some("Transaction isn't found on the blockchain"))
-                            }
+      } ~ path("single" / Segment) { operationId =>
+        onComplete(store.findBroadcastOperationByOperationId(operationId)) {
+          case Success(operationOpt) =>
+            operationOpt match {
+              case Some(broadcastOperation) =>
+                val txJson = Json.parse(broadcastOperation.signedTransaction).as[JsObject].fields.toMap
+                val resp = BroadcastOperationGetResponse(broadcastOperation.operationId, "unknown", new DateTime(txJson("timestamp").as[Long]).toString,
+                  txJson("amount").as[String], txJson("fee").as[String], broadcastOperation.transactionId,
+                  None, None, None)
+                onComplete(api.transactionInfo(broadcastOperation.transactionId)) {
+                  case Success(Some(tx)) =>
+                    complete(resp.copy(state = "completed", block = Some(tx.asInstanceOf[WavesTransferTransaction].height.get)))
+                  case Success(None) =>
+                    onComplete(api.utx()) {
+                      case Success(utx) =>
+                        complete {
+                          if (utx.exists(_.id == broadcastOperation.transactionId)) {
+                            resp.copy(state = "inProgress")
+                          } else {
+                            resp.copy(state = "failed", errorCode = Some("unknown"), error = Some("Transaction isn't found on the blockchain"))
                           }
-                        case Failure(NonFatal(f)) =>
-                          logger.error("Read unconfirmed transactions from node error", f)
-                          complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Read unconfirmed transactions from node error")))
-                      }
-                    case Failure(NonFatal(f)) =>
-                      logger.error("Read transaction info from node error", f)
-                      complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Read transaction info from node error")))
-                  }
-                case None =>
-                  complete(StatusCodes.NoContent)
-              }
-            case Failure(NonFatal(f)) =>
-              logger.error("Read broadcast operation from database error", f)
-              complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Read broadcast operation from database error")))
-          }
+                        }
+                      case Failure(NonFatal(f)) =>
+                        logger.error("Read unconfirmed transactions from node error", f)
+                        complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Read unconfirmed transactions from node error")))
+                    }
+                  case Failure(NonFatal(f)) =>
+                    logger.error("Read transaction info from node error", f)
+                    complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Read transaction info from node error")))
+                }
+              case None =>
+                complete(StatusCodes.NoContent)
+            }
+          case Failure(NonFatal(f)) =>
+            logger.error("Read broadcast operation from database error", f)
+            complete(StatusCodes.InternalServerError -> Json.toJson(ErrorMessage("Read broadcast operation from database error")))
         }
       } ~ notImpletementRoute1("many-inputs" / Segment, get) ~
         notImpletementRoute1("many-outputs" / Segment, get)
