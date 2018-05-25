@@ -114,7 +114,7 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
               case Some(broadcastOperation) =>
                 val txJson = Json.parse(broadcastOperation.signedTransaction).as[JsObject].fields.toMap
                 val resp = BroadcastOperationGetResponse(broadcastOperation.operationId, "unknown", new DateTime(txJson("timestamp").as[Long]).toString,
-                  txJson("amount").as[String], txJson("fee").as[String], broadcastOperation.transactionId,
+                  txJson("amount").as[Long].toString, txJson("fee").as[Long].toString, broadcastOperation.transactionId,
                   None, None, None)
                 onComplete(api.transactionInfo(broadcastOperation.transactionId)) {
                   case Success(Some(tx)) =>
