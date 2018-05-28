@@ -167,6 +167,7 @@ case class TransactionsRoute(store: BroadcastOperationsStore, api: WavesApi) ext
                     transactionBuildRequest.toAddress,
                     amountAfterFee,
                     100000,
+                    System.currentTimeMillis(),
                     if (transactionBuildRequest.assetId != "WAVES") {
                       Some(transactionBuildRequest.assetId)
                     } else {
