@@ -33,7 +33,7 @@ object TransactionsRoute {
 
   case class OperationResult(errorCode: String)
 
-  case class BuildTransactionRequest(operationId: String, fromAddress: String, fromAddressContext: String, toAddress: String, assetId: String, amount: String, includeFee: Boolean)
+  case class BuildTransactionRequest(operationId: String, fromAddress: String, fromAddressContext: Option[String], toAddress: String, assetId: String, amount: String, includeFee: Boolean)
 
   case class TransactionContext(transactionContext: String)
 
